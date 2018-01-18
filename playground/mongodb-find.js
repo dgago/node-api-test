@@ -1,9 +1,7 @@
 const { MongoClient, ObjectID } = require("mongodb");
 
 (async function() {
-    // Connection URL
     const url = "mongodb://13.65.32.65:17510/desa-tucarpeta";
-    // Database Name
     const dbName = "desa-tucarpeta";
     let client;
 
