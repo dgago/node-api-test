@@ -1,54 +1,28 @@
-const mongoose = require("mongoose");
+var express = require("express");
+var bodyParser = require("body-parser");
 
-const dbName = "z";
-const url = `mongodb://13.65.32.65:17510/${dbName}`;
+var { mongoose } = require("./db/mongoose");
+var { Todo } = require("./models/todo");
+var { User } = require("./models/user");
 
-mongoose.PromiseProvider = global.Promise;
-mongoose.connect(url);
+var app = express();
 
-var Todo = mongoose.model("Todo", {
-    text: {
-        type: String,
-        required: true,
-        minlength: 1,
-        trim: true
-    },
-    completed: {
-        type: Boolean,
-        default: false
-    },
-    completedAt: {
-        type: Number,
-        default: null
-    }
+app.use(bodyParser.json());
+
+app.post("/todos", (req, res) => {
+    console.log(req.body);
+    var todo = new Todo({
+        text: req.body.text
+    });
+
+    let p = todo.save().then((doc) => {
+        res.send(doc);
+    }, (e) => {
+        res.status(400);
+        res.send(e);
+    });
 });
 
-var newTodo = new Todo({
-    text: "   Clean dishes  "
+app.listen(3000, () => {
+    console.log("Escuchando en el puerto 3000.");
 });
-
-console.log(newTodo);
-
-// newTodo.save().then(
-//     (doc) => {
-//         console.log(doc);
-//     },
-//     (e) => {
-//         console.log(e);
-//     }
-// );
-
-var User = mongoose.model("User", {
-    email: {
-        type: String,
-        required: true,
-        trim: true,
-        minlength: 1
-    }
-});
-
-var newUser = new User({
-    email: "diego.gago@gmail.com"
-});
-
-newUser.save();
