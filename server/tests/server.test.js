@@ -13,7 +13,9 @@ const todos = [
   },
   {
     _id: new ObjectID(),
-    text: "Second test todo"
+    text: "Second test todo",
+    completed: true,
+    completedAt: 333
   }
 ];
 
@@ -49,7 +51,7 @@ describe("POST /todos", () => {
             done(e);
           });
       });
-  });
+  }).timeout(5000);
 
   it("should not create a new todo with invalid body data", (done) => {
     var text = "";
@@ -75,7 +77,7 @@ describe("POST /todos", () => {
             done(e);
           });
       });
-  });
+  }).timeout(5000);
 });
 
 describe("GET /todos", () => {
@@ -87,7 +89,7 @@ describe("GET /todos", () => {
         expect(res.body.todos.length).eql(2);
       })
       .end(done);
-  });
+  }).timeout(5000);
 });
 
 describe("GET /todos/:id", () => {
@@ -101,7 +103,7 @@ describe("GET /todos/:id", () => {
         expect(res.body.todo.text).eql(todos[0].text);
       })
       .end(done);
-  });
+  }).timeout(5000);
 
   it("should return 404 if todo not found", (done) => {
     var hexId = new ObjectID().toHexString();
@@ -137,7 +139,7 @@ describe("DELETE /todos/:id", () => {
         }
 
         Todo.findById(hexId).then((todo) => {
-          expect(todo).toNotExist();
+          expect(todo).eql(null);
           return done();
         });
       });
@@ -158,6 +160,74 @@ describe("DELETE /todos/:id", () => {
     request(app)
       .delete(`/todos/${hexId}`)
       .expect(404)
+      .end(done);
+  }).timeout(5000);
+});
+
+describe("PATCH /todos/:id", () => {
+  it("should update todo doc", (done) => {
+    var hexId = todos[0]._id.toHexString();
+    var body = {
+      text: "new text",
+      completed: true
+    };
+
+    request(app)
+      .patch(`/todos/${hexId}`)
+      .send(body)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.todo.text).eql(body.text);
+        expect(res.body.todo.completed).eql(body.completed);
+        expect(res.body.todo.completedAt).to.be.a("number");
+      })
+      .end(done);
+  }).timeout(5000);
+
+  it("should return 404 if todo not found", (done) => {
+    var hexId = new ObjectID().toHexString();
+    var body = {
+      text: "new text",
+      completed: true
+    };
+
+    request(app)
+      .patch(`/todos/${hexId}`)
+      .send(body)
+      .expect(404)
+      .end(done);
+  }).timeout(5000);
+
+  it("should return 404 for non-object ids", (done) => {
+    var hexId = "123";
+    var body = {
+      text: "new text",
+      completed: true
+    };
+
+    request(app)
+      .patch(`/todos/${hexId}`)
+      .send(body)
+      .expect(404)
+      .end(done);
+  }).timeout(5000);
+
+  it("should clear completedAt when todo is not completed", (done) => {
+    var hexId = todos[1]._id.toHexString();
+    var body = {
+      text: "new text",
+      completed: false
+    };
+
+    request(app)
+      .patch(`/todos/${hexId}`)
+      .send(body)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.todo.text).eql(body.text);
+        expect(res.body.todo.completed).eql(body.completed);
+        expect(res.body.todo.completedAt).eql(null);
+      })
       .end(done);
   }).timeout(5000);
 });
