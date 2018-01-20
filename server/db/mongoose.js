@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
 
-const dbName = "z";
-const url = process.env.MONGODB_URI || `mongodb://13.65.32.65:17510/${dbName}`;
+const url = process.env.MONGODB_URI;
 
 mongoose.PromiseProvider = global.Promise;
 mongoose.connect(url);
