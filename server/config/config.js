@@ -7,3 +7,4 @@ if (env === "development") {
 } else if (env === "test") {
   process.env.PORT = 3000;
   process.env.MONGODB_URI = `mongodb://13.65.32.65:17510/z2`;
+}
