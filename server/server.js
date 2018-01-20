@@ -21,10 +21,10 @@ app.post("/todos", (req, res) => {
 
   todo.save().then(
     (doc) => {
-      res.send(doc);
+      return res.send(doc);
     },
     (e) => {
-      res.status(400).send(e);
+      return res.status(400).send(e);
     }
   );
 });
@@ -33,12 +33,10 @@ app.post("/todos", (req, res) => {
 app.get("/todos", (req, res) => {
   Todo.find({}).then(
     (todos) => {
-      res.send({
-        todos
-      });
+      return res.send({ todos });
     },
     (e) => {
-      res.status(400).send(e);
+      return res.status(400).send(e);
     }
   );
 });
@@ -48,21 +46,45 @@ app.get("/todos/:id", (req, res) => {
   var id = req.params.id;
 
   if (!ObjectID.isValid(id)) {
-    res.status(404).send({
+    return res.status(404).send({
       message: "El identificador ingresado no es válido."
     });
   }
 
   Todo.findById(id).then(
     (todo) => {
-      if (todo) {
-        res.send({todo});
-      } else {
-        res.status(404).send();
+      if (!todo) {
+        return res.status(404).send();
       }
+
+      return res.send({ todo });
     },
     (e) => {
-      res.status(400).send(e);
+      return res.status(400).send(e);
+    }
+  );
+});
+
+// DELETE /todos/:id
+app.delete("/todos/:id", (req, res) => {
+  var id = req.params.id;
+
+  if (!ObjectID.isValid(id)) {
+    return res.status(404).send({
+      message: "El identificador ingresado no es válido."
+    });
+  }
+
+  Todo.findByIdAndRemove(id).then(
+    (todo) => {
+      if (!todo) {
+        return res.status(404).send();
+      }
+
+      return res.send({ todo });
+    },
+    (e) => {
+      return res.status(400).send(e);
     }
   );
 });
