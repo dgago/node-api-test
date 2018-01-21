@@ -265,7 +265,6 @@ describe("POST /users", () => {
         User.findOne({ email: user.email })
           .then((user) => {
             expect(user);
-            // expect(user.password);
             done();
           })
           .catch((e) => done(e));
