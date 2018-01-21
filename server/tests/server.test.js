@@ -16,6 +16,7 @@ describe("POST /todos", () => {
 
     request(app)
       .post("/todos")
+      .set("x-auth", users[0].tokens[0].token)
       .send({ text })
       .expect(200)
       .expect((res) => {
@@ -43,6 +44,7 @@ describe("POST /todos", () => {
 
     request(app)
       .post("/todos")
+      .set("x-auth", users[0].tokens[0].token)
       .send({ text })
       .expect(400)
       .expect((res) => {
@@ -69,9 +71,10 @@ describe("GET /todos", () => {
   it("should get all todos", (done) => {
     request(app)
       .get("/todos")
+      .set("x-auth", users[0].tokens[0].token)
       .expect(200)
       .expect((res) => {
-        expect(res.body.todos.length).eql(2);
+        expect(res.body.todos.length).eql(1);
       })
       .end(done);
   }).timeout(5000);
@@ -79,14 +82,25 @@ describe("GET /todos", () => {
 
 describe("GET /todos/:id", () => {
   it("should return todo doc", (done) => {
-    var idToFind = todos[0]._id.toHexString();
+    var hexId = todos[0]._id.toHexString();
 
     request(app)
-      .get(`/todos/${idToFind}`)
+      .get(`/todos/${hexId}`)
+      .set("x-auth", users[0].tokens[0].token)
       .expect(200)
       .expect((res) => {
         expect(res.body.todo.text).eql(todos[0].text);
       })
+      .end(done);
+  }).timeout(5000);
+
+  it("should not return doc created by other user", (done) => {
+    var hexId = todos[1]._id.toHexString();
+
+    request(app)
+      .get(`/todos/${hexId}`)
+      .set("x-auth", users[0].tokens[0].token)
+      .expect(404)
       .end(done);
   }).timeout(5000);
 
@@ -95,6 +109,7 @@ describe("GET /todos/:id", () => {
 
     request(app)
       .get(`/todos/${hexId}`)
+      .set("x-auth", users[0].tokens[0].token)
       .expect(404)
       .end(done);
   }).timeout(5000);
@@ -104,6 +119,7 @@ describe("GET /todos/:id", () => {
 
     request(app)
       .get(`/todos/${hexId}`)
+      .set("x-auth", users[0].tokens[0].token)
       .expect(404)
       .end(done);
   }).timeout(5000);
@@ -111,9 +127,10 @@ describe("GET /todos/:id", () => {
 
 describe("DELETE /todos/:id", () => {
   it("should remove todo doc", (done) => {
-    var hexId = todos[0]._id.toHexString();
+    var hexId = todos[1]._id.toHexString();
     request(app)
       .delete(`/todos/${hexId}`)
+      .set("x-auth", users[1].tokens[0].token)
       .expect(200)
       .expect((res) => {
         expect(res.body.todo._id).eql(hexId);
@@ -130,11 +147,30 @@ describe("DELETE /todos/:id", () => {
       });
   }).timeout(5000);
 
+  it("should not remove a todo from other user", (done) => {
+    var hexId = todos[0]._id.toHexString();
+    request(app)
+      .delete(`/todos/${hexId}`)
+      .set("x-auth", users[1].tokens[0].token)
+      .expect(404)
+      .end((err, res) => {
+        if (err) {
+          return done(err);
+        }
+
+        Todo.findById(hexId).then((todo) => {
+          expect(todo.text).to.be.a("string");
+          return done();
+        });
+      });
+  }).timeout(5000);
+
   it("should return 404 if todo not found", (done) => {
     var hexId = new ObjectID().toHexString();
 
     request(app)
       .delete(`/todos/${hexId}`)
+      .set("x-auth", users[1].tokens[0].token)
       .expect(404)
       .end(done);
   }).timeout(5000);
@@ -144,6 +180,7 @@ describe("DELETE /todos/:id", () => {
 
     request(app)
       .delete(`/todos/${hexId}`)
+      .set("x-auth", users[1].tokens[0].token)
       .expect(404)
       .end(done);
   }).timeout(5000);
@@ -159,6 +196,7 @@ describe("PATCH /todos/:id", () => {
 
     request(app)
       .patch(`/todos/${hexId}`)
+      .set("x-auth", users[0].tokens[0].token)
       .send(body)
       .expect(200)
       .expect((res) => {
@@ -166,6 +204,21 @@ describe("PATCH /todos/:id", () => {
         expect(res.body.todo.completed).eql(body.completed);
         expect(res.body.todo.completedAt).to.be.a("number");
       })
+      .end(done);
+  }).timeout(5000);
+
+  it("should not update todo created by other user", (done) => {
+    var hexId = todos[0]._id.toHexString();
+    var body = {
+      text: "new text",
+      completed: true
+    };
+
+    request(app)
+      .patch(`/todos/${hexId}`)
+      .set("x-auth", users[1].tokens[0].token)
+      .send(body)
+      .expect(404)
       .end(done);
   }).timeout(5000);
 
@@ -178,6 +231,7 @@ describe("PATCH /todos/:id", () => {
 
     request(app)
       .patch(`/todos/${hexId}`)
+      .set("x-auth", users[0].tokens[0].token)
       .send(body)
       .expect(404)
       .end(done);
@@ -192,6 +246,7 @@ describe("PATCH /todos/:id", () => {
 
     request(app)
       .patch(`/todos/${hexId}`)
+      .set("x-auth", users[0].tokens[0].token)
       .send(body)
       .expect(404)
       .end(done);
@@ -206,6 +261,7 @@ describe("PATCH /todos/:id", () => {
 
     request(app)
       .patch(`/todos/${hexId}`)
+      .set("x-auth", users[1].tokens[0].token)
       .send(body)
       .expect(200)
       .expect((res) => {
@@ -315,8 +371,8 @@ describe("POST /users/login", () => {
 
         User.findById(users[1]._id)
           .then((user) => {
-            expect(user.tokens[0].access).eql("auth");
-            expect(user.tokens[0].token).eql(res.headers["x-auth"]);
+            expect(user.tokens[1].access).eql("auth");
+            expect(user.tokens[1].token).eql(res.headers["x-auth"]);
             done();
           })
           .catch((e) => done(e));
@@ -341,7 +397,7 @@ describe("POST /users/login", () => {
 
         User.findById(users[1]._id)
           .then((user) => {
-            expect(user.tokens.length).eql(0);
+            expect(user.tokens.length).eql(1);
             done();
           })
           .catch((e) => done(e));
